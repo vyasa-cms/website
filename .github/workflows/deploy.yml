@@ -1,0 +1,74 @@
+name: Build and deploy
+
+# Builds vyasa.site from this repository plus the docs and OpenAPI document
+# in vyasa-cms/vyasa, and deploys it to Cloudflare Pages. Pull requests
+# build only.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # Sent by vyasa-cms/vyasa when its docs or API change.
+  repository_dispatch:
+    types: [docs-changed]
+  # A daily rebuild picks up docs changes even without the dispatch.
+  schedule:
+    - cron: "17 4 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The main repository, read-only. While it is private this uses a
+      # deploy key (secret VYASA_DEPLOY_KEY); once public, none is needed.
+      - uses: actions/checkout@v4
+        with:
+          repository: vyasa-cms/vyasa
+          path: vyasa
+          ssh-key: ${{ secrets.VYASA_DEPLOY_KEY }}
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm types:check
+      - run: pnpm build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: out
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy out --project-name=vyasa-site --branch=main
