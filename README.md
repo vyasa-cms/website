@@ -31,8 +31,9 @@ pnpm build        # static site in out/
 `.github/workflows/deploy.yml` builds on every push and pull request and
 deploys `main` to the Cloudflare Pages project `vyasa-site`. It rebuilds
 daily, and whenever vyasa-cms/vyasa sends a `docs-changed` dispatch.
-Secrets: `VYASA_DEPLOY_KEY` (read-only deploy key on vyasa-cms/vyasa, only
-needed while it is private), `CLOUDFLARE_API_TOKEN` (Pages: Edit) and
+Secrets: `VYASA_DEPLOY_KEY` (read-only deploy key on vyasa-cms/vyasa) or
+`VYASA_READ_TOKEN` (fine-grained token, Contents: read on vyasa-cms/vyasa) —
+either, and only while that repository is private; `CLOUDFLARE_API_TOKEN` (Pages: Edit) and
 `CLOUDFLARE_ACCOUNT_ID`.
 
 ## Licence

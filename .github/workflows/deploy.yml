@@ -29,13 +29,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The main repository, read-only. While it is private this uses a
-      # deploy key (secret VYASA_DEPLOY_KEY); once public, none is needed.
+      # The main repository, read-only. While it is private this needs
+      # either a deploy key (secret VYASA_DEPLOY_KEY) or a fine-grained token
+      # with Contents: read on vyasa-cms/vyasa (secret VYASA_READ_TOKEN).
+      # Once it is public, neither is needed.
       - uses: actions/checkout@v4
         with:
           repository: vyasa-cms/vyasa
           path: vyasa
           ssh-key: ${{ secrets.VYASA_DEPLOY_KEY }}
+          token: ${{ secrets.VYASA_READ_TOKEN || github.token }}
 
       - uses: pnpm/action-setup@v6
         with:
