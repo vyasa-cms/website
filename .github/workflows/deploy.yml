@@ -27,13 +27,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The main repository, read-only. While it is private this needs
       # either a deploy key (secret VYASA_DEPLOY_KEY) or a fine-grained token
       # with Contents: read on vyasa-cms/vyasa (secret VYASA_READ_TOKEN).
       # Once it is public, neither is needed.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: vyasa-cms/vyasa
           path: vyasa
@@ -66,7 +66,7 @@ jobs:
       contents: read
       deployments: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v4
         with:
           name: site
