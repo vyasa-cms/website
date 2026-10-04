@@ -1,0 +1,14 @@
+// vyasa.site on Cloudflare: a Worker that only serves the static export in
+// out/ (no script). Deploy with `npx wrangler deploy` after `pnpm build`.
+{
+  "name": "vyasa-site",
+  "compatibility_date": "2026-10-01",
+  // Until vyasa.site is attached; then set false so only the domain serves it.
+  "workers_dev": true,
+  "assets": {
+    "directory": "./out",
+    // Pretty URLs (/docs/themes for docs/themes.html) and the site's own 404 page.
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

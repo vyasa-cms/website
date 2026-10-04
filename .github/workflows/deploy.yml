@@ -66,6 +66,7 @@ jobs:
       contents: read
       deployments: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: site
@@ -74,4 +75,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy out --project-name=vyasa-site --branch=main
+          command: deploy
