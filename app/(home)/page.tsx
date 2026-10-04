@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Mark } from '@/components/logo';
 
 const features = [
   {
@@ -19,6 +20,7 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-6 py-16">
       <section className="flex flex-col items-center gap-6 text-center">
+        <Mark className="h-16 w-16 text-fd-primary" />
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
           The AI-native content management system
         </h1>

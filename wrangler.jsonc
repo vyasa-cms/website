@@ -3,8 +3,13 @@
 {
   "name": "vyasa-site",
   "compatibility_date": "2026-10-01",
-  // Until vyasa.site is attached; then set false so only the domain serves it.
-  "workers_dev": true,
+  // Only the domain serves the site.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "vyasa.site", "custom_domain": true },
+    { "pattern": "www.vyasa.site", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./out",
     // Pretty URLs (/docs/themes for docs/themes.html) and the site's own 404 page.
