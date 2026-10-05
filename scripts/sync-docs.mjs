@@ -70,4 +70,13 @@ for (const [from, slug] of Object.entries(pages)) {
   const note = `<!-- Generated from ${from} by scripts/sync-docs.mjs. Edit that file instead. -->\n\n`;
   await writeFile(file, front + note + rewriteLinks(body, from));
 }
-console.log(`synced ${Object.keys(pages).length} pages`);
+// The installer is served at vyasa.site/install.sh; its one source is the
+// vyasa repository, so `curl | sh` always matches the release scripts.
+try {
+  const installer = await readFile(join(repo, 'install.sh'), 'utf8');
+  await mkdir(join(here, '..', 'public'), { recursive: true });
+  await writeFile(join(here, '..', 'public', 'install.sh'), installer);
+  console.log(`synced ${Object.keys(pages).length} pages + install.sh`);
+} catch {
+  console.log(`synced ${Object.keys(pages).length} pages (no install.sh in the vyasa checkout)`);
+}
