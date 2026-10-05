@@ -23,6 +23,7 @@ const pages = {
   'docs/THEMES.md': 'building/themes',
   'docs/plugin-api.md': 'building/plugins',
   'docs/MARKETPLACE.md': 'building/marketplace',
+  'docs/PUBLISHING.md': 'building/publishing',
   'docs/MCP.md': 'building/mcp',
   'docs/DEPLOYMENT.md': 'running/deployment',
   'docs/OPERATIONS.md': 'running/operations',
