@@ -17,17 +17,24 @@ docker compose exec app cat .run/setup-token # the one-time setup token
 
 Open `http://localhost:3000/admin/setup`, enter the token, and create the first administrator. The site is on `http://localhost:3000`, the admin on `/admin`.
 
-<Callout title="Before 0.1.0">
-
-Only release candidates exist so far. Put `VYASA_VERSION=0.1.0-rc.2` in an `.env` file next to `docker-compose.yml` (or in front of each `docker compose` command) until 0.1.0 is released.
-
-</Callout>
-
 Pin a version by setting `VYASA_VERSION` (for example `0.1.0`) in that `.env` file. Back up the database before moving to a newer version: migrations only go forward.
+
+## With the installer
+
+Without Docker, the installer picks the release archive for your platform, verifies its checksum, unpacks it into `~/vyasa` and links `vyasa` onto your `PATH`:
+
+```bash
+curl -fsSL https://vyasa.site/install.sh | sh
+cd ~/vyasa
+export VYASA_DATABASE_URL=postgres://vyasa:password@localhost:5432/vyasa
+vyasa migrate && vyasa serve   # prints the setup token on first start
+```
+
+`VYASA_VERSION=0.1.0` pins a version; `VYASA_HOME` and `VYASA_BIN` move the install directory and the command link. Run the server from that directory: it serves the admin from `admin/dist` beside the binary. You need PostgreSQL 15 or newer with the `citext` extension available.
 
 ## From a release archive
 
-Each [release](https://github.com/vyasa-cms/vyasa/releases) has an archive for Linux (x86_64 and arm64) and macOS (arm64), with a checksum next to it. You also need PostgreSQL 15 or newer with the `citext` extension available, and the system CA certificates (the `ca-certificates` package on Debian and Ubuntu; minimal container images may lack it).
+The same by hand. Each [release](https://github.com/vyasa-cms/vyasa/releases) has an archive for Linux (x86_64 and arm64) and macOS (arm64), with a checksum next to it. You also need PostgreSQL 15 or newer with the `citext` extension available, and the system CA certificates (the `ca-certificates` package on Debian and Ubuntu; minimal container images may lack it).
 
 ```bash
 sha256sum -c vyasa-0.1.0-x86_64-unknown-linux-gnu.tar.gz.sha256
