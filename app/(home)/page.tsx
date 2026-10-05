@@ -60,8 +60,14 @@ docker compose up -d
 docker compose exec app cat .run/setup-token`}
         </pre>
         <p className="text-sm text-fd-muted-foreground">
-          Then open <code>http://localhost:3000/admin/setup</code> and enter the token. Until 0.1.0 is
-          released, set <code>VYASA_VERSION=0.1.0-rc.2</code> first. Full steps in{' '}
+          Then open <code>http://localhost:3000/admin/setup</code> and enter the token. Without Docker,
+          the installer fetches the release for your platform and verifies it:
+        </p>
+        <pre tabIndex={0} className="overflow-x-auto rounded-lg border bg-fd-card p-4 text-sm">
+{`curl -fsSL https://vyasa.site/install.sh | sh`}
+        </pre>
+        <p className="text-sm text-fd-muted-foreground">
+          It needs a PostgreSQL database to run against. Full steps in{' '}
           <Link href="/docs/getting-started" className="underline">Getting started</Link>.
         </p>
       </section>
