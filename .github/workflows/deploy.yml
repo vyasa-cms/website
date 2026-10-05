@@ -40,9 +40,7 @@ jobs:
           ssh-key: ${{ secrets.VYASA_DEPLOY_KEY }}
           token: ${{ secrets.VYASA_READ_TOKEN || github.token }}
 
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11
+      - uses: pnpm/action-setup@v6   # version from package.json's packageManager
       - uses: actions/setup-node@v7
         with:
           node-version: 22
