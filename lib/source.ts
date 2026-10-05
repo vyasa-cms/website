@@ -19,6 +19,27 @@ const docs = defineDocs({
   },
 });
 
+// Blog posts: MDX under content/blog with a date and an author.
+const blogDocs = defineDocs({
+  dir: 'content/blog',
+  docs: {
+    schema: pageSchema.extend({ date: z.string(), author: z.string() }),
+  },
+  meta: { schema: metaSchema },
+});
+
+export const blog = loader({
+  baseUrl: '/blog',
+  source: blogDocs.toFumadocsSource(),
+});
+
+/** Posts, newest first. */
+export function blogPosts() {
+  return blog
+    .getPages()
+    .sort((a, b) => (a.data.date < b.data.date ? 1 : -1));
+}
+
 // See https://fumadocs.dev/docs/headless/source-api for more info
 export const source = loader({
   baseUrl: docsRoute,

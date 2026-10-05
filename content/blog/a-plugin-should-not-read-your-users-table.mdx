@@ -1,0 +1,81 @@
+---
+title: A CMS plugin should not be able to read your users table
+description: Why Vyasa runs plugins as WebAssembly components behind a capability broker, what that costs plugin authors, and what it does not solve.
+date: 2026-10-06
+author: Gopal
+---
+
+Every WordPress site I have run was taken down, at some point, by a plugin. Never by core. A contact-form plugin with a file-upload bug; a slider plugin that let anyone run SQL; a caching plugin that a new owner turned into a backdoor. None of these were exotic. They were ordinary code with ordinary bugs, running with the full powers of the application that hosted them, because that is the only kind of plugin the model allows.
+
+I built Vyasa around a different rule: **a plugin can only do what it declared, and the host checks every call.** This post is about what that means in practice, how it is built, and what it does not fix.
+
+## The model everyone inherited
+
+A WordPress plugin is PHP loaded into the same process as WordPress. It can call `$wpdb->get_results("SELECT * FROM wp_users")`, read `wp-config.php`, write any file the web server can write, and make any outbound request. There is no permission to ask for, because there is nothing to ask. The admin's only decision is *install or don't*, made on the basis of a star rating.
+
+This is not a WordPress-specific failing. Drupal modules, Ghost's integrations, most Node and Python CMS plugin systems work the same way: in-process code with the application's authority. Sandboxing was hard, so nobody did it, and "only install plugins you trust" became the advice — advice that nobody can follow, because trust in a plugin is trust in every future maintainer of it.
+
+## What Vyasa does instead
+
+A Vyasa plugin is a **WebAssembly component**. It ships as a `.vyplugin`: a manifest, a `.wasm` file, and the author's signature. The manifest says what the plugin needs:
+
+```toml
+name = "storefront"
+version = "0.1.0"
+capabilities = [
+    "log:write",
+    "db:read:posts",
+    "db:write:meta",
+    "kv:read",
+    "kv:write",
+    "viewer:read",
+    "mail:send",
+]
+```
+
+That list is not documentation. It is the contract the host enforces.
+
+The plugin cannot open a database connection, read a file, or make an HTTP request on its own — a Wasm component has no ambient access to anything. Everything it does, it does by calling a host function the runtime (wasmtime) imports into it: `query-posts`, `kv-set`, `fetch`, `send-mail`. Each host function is tagged with the capability it needs, and a **broker** sits in front of all of them:
+
+```text
+plugin ──call──▶ broker ──allowed?──▶ host function ──▶ database / network / mail
+                   │
+                   └── no: the call returns an error, the denial is logged
+```
+
+The broker checks the plugin's granted capabilities on *every* call, not at load time. `db:read:posts` grants `get-post` and `query-posts`, and only the published-post summary shape; there is no capability that returns a user's email address or password hash, because no host function exposes them. `net:fetch:api.stripe.com` grants `fetch` to that host and no other — redirects are refused, because a redirect would spend the grant on a different host. On top of the capability check sit limits the plugin cannot negotiate: fuel (instructions per call), a wall-clock deadline enforced by epoch interruption, a memory ceiling, byte and call quotas on fetches.
+
+So the question an administrator answers is no longer "do I trust this author forever?" but "do I accept that this plugin can read posts, write its own key-value store, and email people?" — and the admin sees exactly that list before clicking Install. When a later version asks for more, the new capabilities are marked **(new)** and named in the confirmation. Nothing auto-updates.
+
+## Why WebAssembly, and why components
+
+Three properties made this possible, and none of them is "Wasm is fast".
+
+**No ambient authority.** A Wasm module starts with nothing: no filesystem, no sockets, no environment. Every power is an import the host chooses to provide. That is the whole security argument in one sentence, and it is why I did not try to do this with a scripting language and an allow-list of functions — in those, "no access" has to be subtracted from "all access", and something is always missed.
+
+**A typed contract.** The [component model](https://component-model.bytecodealliance.org/) lets the host and the plugin agree on an interface in WIT, with real types — records, results, options — instead of pointers into linear memory. Vyasa's contract is one file, [`host.wit`](https://github.com/vyasa-cms/vyasa/blob/main/crates/plugins/wit/host.wit). Plugins generate bindings from it with `wit-bindgen`; the host generates its side with `wasmtime::component::bindgen!` from the same file. There is no second copy to drift.
+
+**Interruptible execution.** wasmtime can meter fuel and interrupt a running guest from another thread (epochs). A plugin in an infinite loop costs the request its deadline, not the server its life.
+
+The cost is real: plugins are written in Rust today (any language that targets `wasm32-wasip2` can follow), the binaries are bigger than a PHP file, and a plugin author has to think about what they need up front instead of reaching for whatever is in scope. I think that last one is a feature.
+
+## Versioning a contract you cannot break
+
+The hard design problem was not the sandbox; it was changing the contract after plugins exist. Bumping the WIT package from `vyasa:plugin@1.0.0` to `@2.0.0` would have invalidated every installed plugin binary at once.
+
+Vyasa does two things instead. New host *imports* are added in place: a component imports only the functions it calls, and a host offering more than a guest asks for still satisfies it, so storage and post-writing were added to `@1.0.0` without a version bump. New plugin *exports* were added as a **superset world**, `vyasa-plugin-v2`, alongside the base `vyasa-plugin`. The host resolves the v2 export indices once when it loads a component; a component without them is served by the base path forever, and every v2 entry point answers "unsupported" for it — an ordinary answer, not a failure. A plugin built last year installs and runs today.
+
+## What this does not solve
+
+Honesty is cheaper than the comment thread, so:
+
+- **A plugin can still misuse what it was granted.** `db:write:posts` lets a plugin publish nonsense; `mail:send` lets it spam your subscribers. The model bounds the blast radius; it does not make a bad plugin good. The capability list is the thing to read before installing, and it is written so that a non-programmer can.
+- **The host is the trusted computing base.** A bug in a host function — say, a `query-posts` that forgot to exclude password-protected posts — is a bug in Vyasa, and the sandbox does not help. Host functions are small, tested, and deliberately boring for this reason.
+- **Rendering.** A plugin's HTML is sanitised by the host before it reaches a page, but a plugin that renders a block can still render a misleading one.
+- **Supply chain of the plugin itself.** The sandbox protects the server from the plugin. It does not tell you whether the `.vyplugin` you downloaded is the one the author built. That is what signing is for: every marketplace package carries the author's signature, checked against the key in its listing, and the marketplace's own signature over the bytes, checked against keys compiled into every Vyasa binary. A different post.
+
+## Try it
+
+The four reference plugins in the [marketplace](https://github.com/vyasa-cms/marketplace) — a storefront, a forum, a bookshelf that uses every extension point, and a one-filter footer note — are the fixtures the test suite compiles and runs on every commit. The [plugin-starter](https://github.com/vyasa-cms/plugin-starter) template takes you from one filter to a marketplace pull request. And if you want to see the capability prompt without installing anything, the [demo](https://demo.vyasa.site) resets every hour; go to Plugins → Browse plugins and click Install on anything.
+
+Vyasa is at 0.1.0. The contract will grow; I intend the rule to hold.
