@@ -57,7 +57,7 @@ export default function HomePage() {
 curl -fsSLO https://raw.githubusercontent.com/vyasa-cms/vyasa/main/docker-compose.yml
 docker compose run --rm app migrate
 docker compose up -d
-docker compose exec app cat .run/setup-token`}
+docker compose exec app cat /tmp/vyasa-run/setup-token`}
         </pre>
         <p className="text-sm text-fd-muted-foreground">
           Then open <code>http://localhost:3000/admin/setup</code> and enter the token. Without Docker,

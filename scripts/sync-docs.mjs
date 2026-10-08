@@ -30,6 +30,11 @@ const pages = {
   'docs/SECURITY.md': 'running/security',
   'docs/VERSIONING.md': 'running/versioning',
   'docs/PERFORMANCE.md': 'running/performance',
+  'deploy/cloudflare/README.md': 'running/deploy-cloudflare',
+  'deploy/fly/README.md': 'running/deploy-fly',
+  'deploy/kubernetes/README.md': 'running/deploy-kubernetes',
+  'deploy/railway/README.md': 'running/deploy-railway',
+  'deploy/render/README.md': 'running/deploy-render',
   'docs/ROUTE-ACCESS.md': 'reference/route-access',
   'CONTRIBUTING.md': 'contributing',
 };
